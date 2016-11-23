@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<head>
+<title>Texture Mapping</title>
+<script src="three.min.js"></script>
+
+<!--Adapted from the blog post:
+    http://solutiondesign.com/blog/-/blogs/webgl-and-three-js-texture-mappi-1/-->
+
+<script>
+    var scene, camera, renderer; // Three.js rendering basics.
+
+    var canvas; // The canvas on which the image is rendered.
+
+    var octahedron;
+    var floor;
+    var wall1, wall2;
+    
+    // Create the scene. This function is called once, as soon as the page loads.
+    // The renderer has already been created before this function is called.
+    function createWorld() {
+        
+        renderer.setClearColor(0); // Set background color (0, or 0x000000, is black).
+        scene = new THREE.Scene(); // Create a new scene which we can add objects to.
+    
+        // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+        camera = new THREE.PerspectiveCamera(70, canvas.width/canvas.height, 1, 1000);
+
+        var light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set(-3, 0, 2 );
+        scene.add(light);
+    
+
+        // create some lights and add them to the scene.
+        //scene.add( new THREE.DirectionalLight( 0xffffff, 0.4 ) ); // dim light shining from above
+        var viewpointLight = new THREE.DirectionalLight( 0xffffff, 0.8 );  // a light to shine in the direction the camera faces
+        viewpointLight.position.set(0,0,1);  // shines down the z-axis
+        scene.add(viewpointLight);
+
+        
+
+    }
+
+    function Octahedron() {
+        var checkerboardTexture = THREE.ImageUtils.loadTexture("checkerboard.png");
+        var checkerboardMaterial = new THREE.MeshPhongMaterial( {map: checkerboardTexture});
+       
+        // set up the geometry for octahedron
+        var octahedronGeom = new THREE.Geometry();
+
+        octahedronGeom.vertices = [
+            new THREE.Vector3(0.5, 0, 0.5), // vertex number 0
+            new THREE.Vector3(0.5, 0, -0.5), // vertex number 1
+            new THREE.Vector3(-0.5, 0, -0.5), // vertex number 2
+            new THREE.Vector3(-0.5, 0, 0.5), // vertex number 3
+            new THREE.Vector3(0, 0.5, 0), // vertex number 4
+            new THREE.Vector4(0, -0.5, 0) // vertex number 5
+        ];
+
+        octahedronGeom.faces = [
+            new THREE.Face3(3, 0, 4),
+            new THREE.Face3(0, 1, 4),
+            new THREE.Face3(1, 2, 4),
+            new THREE.Face3(2, 3, 4),
+            new THREE.Face3(3, 5, 0),
+            new THREE.Face3(5, 1, 0),
+            new THREE.Face3(5, 2, 1),
+            new THREE.Face3(5, 3, 2)
+        ];
+
+        octahedronGeom.computeFaceNormals();
+
+        // set up several uv coordinates to repeatedly use below
+        var uvcoords = [new THREE.Vector2(0, 0), new THREE.Vector2(1,0), new THREE.Vector2(0,1), new THREE.Vector2(1, 1)];
+        
+        // erase any previous face coordinates
+        octahedronGeom.faceVertexUvs[0] = [];
+        
+
+        // write one line for each of the 8 faces
+        // for vertex 3, 0, 4 
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[2], uvcoords[0], uvcoords[3]]);
+        // for vertex 0, 1, 4
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[0], uvcoords[2], uvcoords[3]]);
+        // for vertex 1, 2, 4
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[0], uvcoords[1], uvcoords[2]]);
+        // for vertex 2, 3, 4
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[1], uvcoords[3], uvcoords[2]]);
+        // for vertex 3, 5 0
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[0], uvcoords[3], uvcoords[1]]);
+        // for vertex 5, 1, 0
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[0], uvcoords[3], uvcoords[2]]);
+        // for vertex 5, 2, 1
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[1], uvcoords[3], uvcoords[2]]);
+        // for vertex 5, 3, 2
+        octahedronGeom.faceVertexUvs[0].push([uvcoords[2], uvcoords[1], uvcoords[0]]);
+
+
+        // create the octahedron using the checkerboard texture
+        octahedron = new THREE.Mesh(octahedronGeom, checkerboardMaterial);
+        octahedron.position.z = -3.5;
+        octahedron.position.y = 0.5;
+        octahedron.rotation.set(0.2,-0.2, 0); 
+        scene.add(octahedron);       
+    }
+
+    function createFloor() {
+        
+        var woodTexture = THREE.ImageUtils.loadTexture("wood2.png");
+        woodTexture.wrapS = THREE.RepeatWrapping;
+        woodTexture.wrapT = THREE.RepeatWrapping;
+        woodTexture.repeat.set(10, 10);
+
+        var woodMaterial = new THREE.MeshLambertMaterial( {map: woodTexture});
+        // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+        
+        camera.position.set(0,0.9,-1); // put camera in the middle of the world
+
+        // create some lights and add them to the scene.
+        scene.add( new THREE.DirectionalLight( 0xffffff, 0.4 ) ); 
+        // add a plane for the ground, rotated 90 deg in the x direction
+        var geometry = new THREE.PlaneGeometry(3, 3) ;
+        var material = new THREE.MeshBasicMaterial({color: "pink", side: THREE.DoubleSide});
+        //var material = new THREE.MeshBasicMaterial({map: woodMaterial, side: THREE.DoubleSide});
+        //floor = new THREE.Mesh( geometry, material );
+        floor = new THREE.Mesh( geometry, woodMaterial );
+        floor.material.side = THREE.DoubleSide;
+
+
+        floor.rotation.x = Math.PI/2;
+        //floor.position.y ;
+        
+        floor.position.z -=4;
+        //console.log(floor.position.z)
+
+        scene.add(floor);
+
+    }
+
+    function createWall() {
+        var wallTexture1 = THREE.ImageUtils.loadTexture("wall2.jpg");
+        wallTexture1.wrapS = THREE.RepeatWrapping;
+        wallTexture1.wrapT = THREE.RepeatWrapping;
+        wallTexture1.repeat.set(2, 1);
+
+        var wallMaterial1 = new THREE.MeshLambertMaterial( {map: wallTexture1});
+        // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+        
+
+        // add a plane for the ground, rotated 90 deg in the x direction
+        var geometry = new THREE.PlaneGeometry(3, 1.2) ;
+        wall1 = new THREE.Mesh( geometry, wallMaterial1 );
+        wall1.material.side = THREE.DoubleSide;
+
+
+        //wall1.rotation.x = Math.PI/2;
+        wall1.position.z -=5.4;
+        wall1.position.y +=0.5;
+        //console.log(floor.position.z)
+
+        scene.add(wall1);
+
+        var wallTexture2 = THREE.ImageUtils.loadTexture("wall1.jpg");
+        wallTexture2.wrapS = THREE.RepeatWrapping;
+        wallTexture2.wrapT = THREE.RepeatWrapping;
+        wallTexture2.repeat.set(2, 1);
+
+        var wallMaterial2 = new THREE.MeshLambertMaterial( {map: wallTexture2});
+        // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+        
+
+        // add a plane for the ground, rotated 90 deg in the x direction
+        var geometry = new THREE.PlaneGeometry(3, 1.05) ;
+    
+        wall2 = new THREE.Mesh( geometry, wallMaterial2 );
+        wall2.material.side = THREE.DoubleSide;
+
+    
+        wall2.position.z -=3.95;
+        wall2.position.x += 1.45;
+        wall2.position.y += 0.55;
+        wall2.rotation.y += -Math.PI/2;
+
+        scene.add(wall2);
+
+
+    }
+
+
+    // Render the scene. This is called for each frame of the animation.
+    function render() {
+        requestAnimationFrame( render );
+
+        //cube.rotation.x += .04;
+        //cube.rotation.y += .02;
+        //octahedron.rotation.x += .04;
+        octahedron.rotation.y += .02;
+        // wall2.position.z -=0.1;
+        renderer.render(scene, camera);
+    }
+
+    //----------------------------------------------------------------------------------
+
+    // The init() function is called by the onload event when the document has loaded.
+    function init() {
+        try {
+            canvas = document.getElementById("glcanvas");
+            renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true} );
+        }
+        catch (e) {
+            document.getElementById("canvas-holder").innerHTML = "<h3><b>WebGL is not available.</b><h3>";
+            return;
+        }
+    
+        // create world and render scene
+        createWorld();
+        Octahedron();
+        createFloor();
+        createWall();
+        render();
+        
+    }
+
+</script>
+
+</head>
+<body onload="init()">
+<div id="canvas-holder">
+    <canvas id="glcanvas" width="600" height="400"></canvas>
+</div>
+</body>
+</html>
